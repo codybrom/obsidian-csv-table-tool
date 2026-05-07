@@ -40,6 +40,12 @@ const PX_PER_CHAR = 7;
 const COLUMN_PADDING_PX = 20;
 const SAMPLE_ROWS_FOR_SIZING = 30;
 
+const ADVANCE_DELTAS = {
+	down: { row: 1, col: 0 },
+	right: { row: 0, col: 1 },
+	left: { row: 0, col: -1 },
+} as const;
+
 function estimateColumnWidth(samples: string[]): number {
 	let maxChars = 0;
 	for (const cell of samples) {
@@ -70,6 +76,8 @@ export class CSVView extends FileView {
 	private showRowIndex = true;
 	private fitWidth = false;
 	private suppressNextModify = false;
+	private activeCell: { fileRow: number; col: number } | null = null;
+	private refocusWrapperAfterRender = false;
 
 	constructor(leaf: WorkspaceLeaf, plugin: CSVTableToolPlugin) {
 		super(leaf);
@@ -128,14 +136,114 @@ export class CSVView extends FileView {
 		this.contentEl.addClass("csv-table-tool-container");
 
 		const tableWrapper = this.contentEl.createDiv({ cls: "csv-table-wrapper" });
+		tableWrapper.setAttribute("tabindex", "0");
+		tableWrapper.addEventListener("keydown", (e: KeyboardEvent) => this.handleKeyDown(e));
+		// Make sure clicking anywhere in the table area gives the wrapper
+		// keyboard focus so arrow/Tab nav works.
+		tableWrapper.addEventListener("mousedown", (e: MouseEvent) => {
+			const target = e.target;
+			if (target instanceof HTMLElement && target.tagName === "TEXTAREA") return;
+			tableWrapper.focus({ preventScroll: true });
+		});
 
 		if (!firstRow) {
 			tableWrapper.createDiv({ text: "Empty CSV file", cls: "csv-empty" });
 		} else {
 			this.renderTable(tableWrapper, rows, firstRow);
+			this.applyActiveCellHighlight();
 		}
 
 		this.renderFormatBar(rows);
+
+		if (this.refocusWrapperAfterRender) {
+			this.refocusWrapperAfterRender = false;
+			tableWrapper.focus();
+		}
+	}
+
+	private applyActiveCellHighlight(): void {
+		this.tableEl.querySelectorAll(".csv-active").forEach((el) => el.removeClass("csv-active"));
+		if (!this.activeCell) return;
+		const { fileRow, col } = this.activeCell;
+		const cell = this.findCell(fileRow, col);
+		if (cell) {
+			cell.addClass("csv-active");
+			cell.scrollIntoView({ block: "nearest", inline: "nearest" });
+		}
+	}
+
+	private findCell(fileRow: number, col: number): HTMLElement | null {
+		const colOffset = this.showRowIndex ? 1 : 0;
+		if (this.treatFirstRowAsHeader && fileRow === 0) {
+			const ths = this.tableEl.tHead?.rows[0]?.cells;
+			return (ths?.[col + colOffset] as HTMLElement | undefined) ?? null;
+		}
+		const dataRowIdx = this.treatFirstRowAsHeader ? fileRow - 1 : fileRow;
+		const tr = this.tableEl.tBodies[0]?.rows[dataRowIdx];
+		return (tr?.cells[col + colOffset] as HTMLElement | undefined) ?? null;
+	}
+
+	private handleKeyDown(e: KeyboardEvent): void {
+		// Editing-cell key handling lives in the textarea's own listeners.
+		if (this.tableEl.querySelector(".csv-editing")) return;
+		if (!this.activeCell) return;
+
+		const { fileRow, col } = this.activeCell;
+		let next: { fileRow: number; col: number } | null = null;
+
+		switch (e.key) {
+			case "ArrowUp":
+				next = { fileRow: fileRow - 1, col };
+				break;
+			case "ArrowDown":
+				next = { fileRow: fileRow + 1, col };
+				break;
+			case "ArrowLeft":
+				next = { fileRow, col: col - 1 };
+				break;
+			case "ArrowRight":
+				next = { fileRow, col: col + 1 };
+				break;
+			case "Tab":
+				next = { fileRow, col: col + (e.shiftKey ? -1 : 1) };
+				break;
+			case "Enter":
+			case "F2": {
+				const cell = this.findCell(fileRow, col);
+				if (cell) {
+					e.preventDefault();
+					this.startEdit(cell, fileRow, col);
+				}
+				return;
+			}
+			default:
+				return;
+		}
+
+		e.preventDefault();
+		this.activeCell = this.clampCell(next);
+		this.applyActiveCellHighlight();
+	}
+
+	private clampCell(cell: { fileRow: number; col: number }): { fileRow: number; col: number } {
+		const totalRows = this.totalFileRowCount();
+		const totalCols = this.totalColCount();
+		return {
+			fileRow: Math.max(0, Math.min(totalRows - 1, cell.fileRow)),
+			col: Math.max(0, Math.min(totalCols - 1, cell.col)),
+		};
+	}
+
+	private totalFileRowCount(): number {
+		const headerRows = this.treatFirstRowAsHeader ? 1 : 0;
+		const bodyRows = this.tableEl.tBodies[0]?.rows.length ?? 0;
+		return headerRows + bodyRows;
+	}
+
+	private totalColCount(): number {
+		const headerCells = this.tableEl.tHead?.rows[0]?.cells.length ?? 0;
+		const offset = this.showRowIndex ? 1 : 0;
+		return Math.max(0, headerCells - offset);
 	}
 
 	private renderTable(wrapper: HTMLElement, rows: string[][], firstRow: string[]): void {
@@ -295,8 +403,14 @@ export class CSVView extends FileView {
 	}
 
 	private attachEdit(cell: HTMLElement, fileRow: number, col: number): void {
+		cell.addEventListener("click", () => {
+			if (cell.classList.contains("csv-editing")) return;
+			this.activeCell = { fileRow, col };
+			this.applyActiveCellHighlight();
+		});
 		cell.addEventListener("dblclick", (evt) => {
 			evt.preventDefault();
+			this.activeCell = { fileRow, col };
 			this.startEdit(cell, fileRow, col);
 		});
 	}
@@ -324,10 +438,20 @@ export class CSVView extends FileView {
 		}, 0);
 
 		let resolved = false;
-		const finish = (commit: boolean) => {
+		const finish = (commit: boolean, advance: "down" | "right" | "left" | null) => {
 			if (resolved) return;
 			resolved = true;
 			cell.removeClass("csv-editing");
+			if (advance) {
+				const delta = ADVANCE_DELTAS[advance];
+				this.activeCell = this.clampCell({
+					fileRow: fileRow + delta.row,
+					col: col + delta.col,
+				});
+			} else {
+				this.activeCell = { fileRow, col };
+			}
+			this.refocusWrapperAfterRender = true;
 			if (commit && input.value !== original) {
 				void this.commitEdit(fileRow, col, input.value);
 			} else {
@@ -338,13 +462,16 @@ export class CSVView extends FileView {
 		input.addEventListener("keydown", (e: KeyboardEvent) => {
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
-				finish(true);
+				finish(true, "down");
+			} else if (e.key === "Tab") {
+				e.preventDefault();
+				finish(true, e.shiftKey ? "left" : "right");
 			} else if (e.key === "Escape") {
 				e.preventDefault();
-				finish(false);
+				finish(false, null);
 			}
 		});
-		input.addEventListener("blur", () => finish(true));
+		input.addEventListener("blur", () => finish(true, null));
 	}
 
 	private attachContextMenu(cell: HTMLElement, fileRow: number | null, col: number | null): void {

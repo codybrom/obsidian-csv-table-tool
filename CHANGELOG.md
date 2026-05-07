@@ -9,7 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Planned: keyboard navigation between cells, sort-by-column, community-plugins submission.
+Planned: sort-by-column, Home/End/PageUp/PageDown nav, community-plugins submission.
+
+## [0.6.0] - 2026-05-07
+
+### Added
+
+- **Keyboard navigation.** Click a cell or Tab into the table to give it focus, then:
+    - **Arrow keys** move the active cell up/down/left/right (bounded to the table).
+    - **Tab** / **Shift+Tab** advance horizontally (and stay inside the table — won't escape into the format bar).
+    - **Enter** or **F2** on the active cell enters edit mode.
+    - In edit mode: **Enter** commits + moves down, **Tab** / **Shift+Tab** commit + advance horizontally, **Shift+Enter** inserts a newline, **Esc** cancels.
+- Active-cell focus ring rendered as an outline (no layout shift).
+- After every edit commit, the table scroll wrapper regrabs focus so subsequent keys keep flowing through the table's keyboard handler.
+- Clicking anywhere inside the table area focuses the wrapper (mousedown), so arrow keys work consistently regardless of where focus was previously.
+
+### Fixed
+
+- Tab while editing no longer escapes into the format bar's segmented controls (which was previously letting Enter/Space then accidentally change the active separator).
 
 ## [0.5.0] - 2026-05-07
 
@@ -50,8 +67,8 @@ Planned: keyboard navigation between cells, sort-by-column, community-plugins su
 - Drag-to-resize column handles on every header (visible in natural-width mode).
 - Per-file column widths held in memory on the plugin instance — survives close/reopen within an Obsidian session.
 - "Fit width" toggle in the format bar (default off):
-  - Off: natural-width mode (`table-layout: fixed`, `width: max-content`) with heuristic starting widths and resize handles.
-  - On: auto-fit mode (`table-layout: auto`, `width: 100%`) where the browser distributes column widths and resize handles are hidden.
+    - Off: natural-width mode (`table-layout: fixed`, `width: max-content`) with heuristic starting widths and resize handles.
+    - On: auto-fit mode (`table-layout: auto`, `width: 100%`) where the browser distributes column widths and resize handles are hidden.
 
 ### Changed
 
@@ -107,7 +124,8 @@ Planned: keyboard navigation between cells, sort-by-column, community-plugins su
 - First-row-as-header toggle (per-file, with a global default in settings).
 - Hand-rolled CSV parser supporting quoted fields, embedded commas, embedded newlines, escaped `""`, and both `\n` / `\r\n` line endings.
 
-[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.1...0.3.0
