@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Planned: cell editing with safe write-back (0.4.0) and CSV format conversion (0.5.0).
+
+## [0.3.0] - 2026-05-07
+
+### Added
+
+- Leftmost row index column (TableTool-style) with theme-aware muted styling. Toggleable via a "Row #" checkbox in the format bar.
+- Numeric column inference: columns whose values are predominantly numeric get right-aligned with tabular-nums.
+- Quote-style auto-detection on file open (companion to the existing separator detection).
+- External-change reload: editing the underlying `.csv` outside the view refreshes the table automatically (subscribes via `vault.on('modify')`; cleanup handled by `registerEvent`).
+- Spreadsheet-style placeholder column headers when "Header" is off — `A`, `B`, …, `Z`, `AA`, `AB`, … with the inferred type (`text` / `number`) inline as a subtitle.
+- Drag-to-resize column handles on every header (visible in natural-width mode).
+- Per-file column widths held in memory on the plugin instance — survives close/reopen within an Obsidian session.
+- "Fit width" toggle in the format bar (default off):
+    - Off: natural-width mode (`table-layout: fixed`, `width: max-content`) with heuristic starting widths and resize handles.
+    - On: auto-fit mode (`table-layout: auto`, `width: 100%`) where the browser distributes column widths and resize handles are hidden.
+
+### Changed
+
+- Bases-aligned visual density: smaller font (`--font-smaller`), tighter padding (`5px 8px`), muted normal-weight headers, single-pixel borders using `--table-border-color`.
+- Cells always wrap and never truncate (`white-space: normal`, `overflow-wrap: anywhere`).
+- Row index numbers now match actual file line numbers, so the same physical row keeps the same index whether "Header" is on or off.
+- Resize / format-bar listeners use `th.ownerDocument` so they work in Obsidian popout windows.
+
+### Removed
+
+- The previous "Wrap" toggle. Wrap is now always on, with "Fit width" replacing it as the way to choose between auto-fit and natural-width layout.
+
+### Fixed
+
+- Toggling format-bar checkboxes no longer flashes — `render()` reads the file before clearing `contentEl`, so the await boundary doesn't leave the user staring at an empty view.
+- Text selection works on cells (Obsidian's global `user-select: none` baseline now explicitly opted out of for `<th>` and `<td>`).
+
 ## [0.2.1] - 2026-05-07
 
 ### Changed
@@ -47,7 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First-row-as-header toggle (per-file, with a global default in settings).
 - Hand-rolled CSV parser supporting quoted fields, embedded commas, embedded newlines, escaped `""`, and both `\n` / `\r\n` line endings.
 
-[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.1...HEAD
+[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.1...0.3.0
 [0.2.1]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/codybrom/obsidian-csv-table-tool/releases/tag/0.1.0

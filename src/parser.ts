@@ -71,6 +71,43 @@ export function parseCSV(text: string, options: ParseOptions = DEFAULT_OPTIONS):
 	return rows;
 }
 
+export function detectQuote(text: string): QuoteStyle {
+	const sample = text.slice(0, 8000);
+	const backslashEscapes = (sample.match(/\\"/g) ?? []).length;
+	const doubleQuotes = (sample.match(/"/g) ?? []).length;
+
+	if (backslashEscapes > 0 && backslashEscapes * 2 > doubleQuotes) {
+		return "backslash";
+	}
+	if (doubleQuotes >= 2) {
+		return "double";
+	}
+	return "none";
+}
+
+export function detectNumericColumns(rows: string[][], hasHeader: boolean): boolean[] {
+	const dataRows = hasHeader ? rows.slice(1) : rows;
+	if (dataRows.length === 0 || !dataRows[0]) return [];
+
+	const colCount = dataRows[0].length;
+	const result: boolean[] = [];
+	const numericRe = /^-?\d{1,3}(?:[,\s]\d{3})*(?:\.\d+)?$|^-?\d+(?:\.\d+)?$/;
+
+	for (let c = 0; c < colCount; c++) {
+		let nonEmpty = 0;
+		let numeric = 0;
+		for (const row of dataRows) {
+			const cell = (row[c] ?? "").trim();
+			if (cell === "") continue;
+			nonEmpty++;
+			if (numericRe.test(cell)) numeric++;
+		}
+		// Need at least 3 non-empty samples and 80% numeric to flag the column.
+		result.push(nonEmpty >= 3 && numeric / nonEmpty >= 0.8);
+	}
+	return result;
+}
+
 export function detectSeparator(text: string): string {
 	const candidates = [",", ";", "\t", "|"];
 	const sample = text.split(/\r?\n/).slice(0, 10).join("\n");

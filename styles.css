@@ -5,19 +5,35 @@
 .csv-table-tool-container {
 	padding: 0;
 	height: 100%;
+	width: 100%;
+	max-width: 100%;
 	display: flex;
 	flex-direction: column;
+	overflow: hidden;
 }
 
 .csv-table-wrapper {
 	flex: 1;
+	min-width: 0;
+	min-height: 0;
 	overflow: auto;
 }
 
 .csv-table {
-	width: 100%;
 	border-collapse: collapse;
-	font-size: var(--font-ui-small);
+	font-size: var(--font-smaller);
+	/* Default: natural width — columns at explicit widths, table extends.
+	   Wrapper scrolls horizontally if table is wider than wrapper. */
+	table-layout: fixed;
+	width: max-content;
+	max-width: max-content;
+}
+
+/* Fit-width mode: table fills wrapper, browser auto-distributes columns. */
+.csv-table.csv-fit {
+	table-layout: auto;
+	width: 100%;
+	max-width: 100%;
 }
 
 .csv-table thead {
@@ -27,25 +43,86 @@
 }
 
 .csv-table th {
-	background-color: var(--background-secondary);
-	color: var(--text-normal);
-	font-weight: 600;
+	position: relative;
+	background-color: var(--background-primary);
+	color: var(--text-muted);
+	font-weight: var(--font-weight);
 	text-align: left;
-	padding: 8px 12px;
-	border-bottom: 2px solid var(--background-modifier-border);
-	border-right: 1px solid var(--background-modifier-border);
-	white-space: nowrap;
+	padding: 5px 8px;
+	border-bottom: 1px solid var(--table-border-color, var(--background-modifier-border));
+	border-right: 1px solid var(--table-border-color, var(--background-modifier-border));
+	vertical-align: middle;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.csv-th-content {
+	display: inline-block;
+	max-width: 100%;
+}
+
+/* Column resize handle — only useful in natural-width mode (the default). */
+.csv-th-resize {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	width: 7px;
+	cursor: col-resize;
+	user-select: none;
+	z-index: 2;
+	background: transparent;
+	transition: background-color 0.1s ease;
+}
+
+.csv-table.csv-fit .csv-th-resize {
+	display: none;
+}
+
+.csv-th-resize:hover,
+.csv-th-resize.is-resizing {
+	background: hsl(var(--interactive-accent-hsl) / 0.6);
+}
+
+body.csv-resizing,
+body.csv-resizing * {
+	cursor: col-resize !important;
+	user-select: none !important;
 }
 
 .csv-table th:last-child {
 	border-right: none;
 }
 
+.csv-th-letter {
+	color: var(--text-muted);
+	font-weight: var(--font-weight);
+	letter-spacing: 0.04em;
+}
+
+.csv-th-type {
+	color: var(--text-faint);
+	font-weight: var(--font-weight);
+	font-style: italic;
+	margin-left: 6px;
+}
+
 .csv-table td {
-	padding: 6px 12px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	border-right: 1px solid var(--background-modifier-border);
+	padding: 5px 8px;
+	border-bottom: 1px solid var(--table-border-color, var(--background-modifier-border));
+	border-right: 1px solid var(--table-border-color, var(--background-modifier-border));
 	color: var(--text-normal);
+	vertical-align: top;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	-webkit-user-select: text;
+	user-select: text;
+	cursor: text;
+}
+
+.csv-table th {
+	-webkit-user-select: text;
+	user-select: text;
 }
 
 .csv-table td:last-child {
@@ -54,6 +131,39 @@
 
 .csv-table tbody tr:hover {
 	background-color: var(--background-modifier-hover);
+}
+
+/* Row index column */
+
+.csv-table th.csv-rowidx-th,
+.csv-table td.csv-rowidx {
+	background-color: var(--background-secondary);
+	color: var(--text-faint);
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	-webkit-user-select: none;
+	user-select: none;
+	cursor: default;
+	white-space: nowrap;
+	padding: 5px 8px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.csv-table th.csv-rowidx-th {
+	border-right: 1px solid var(--table-border-color, var(--background-modifier-border));
+}
+
+.csv-table td.csv-rowidx {
+	border-right: 1px solid var(--table-border-color, var(--background-modifier-border));
+}
+
+/* Numeric columns: right-align values */
+
+.csv-table th.csv-numeric,
+.csv-table td.csv-numeric {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
 }
 
 .csv-empty {
