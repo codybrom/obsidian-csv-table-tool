@@ -1,3 +1,7 @@
+.workspace-leaf-content[data-type="csv-table-tool-view"] .view-content {
+	padding: 0;
+}
+
 .csv-table-tool-container {
 	padding: 0;
 	height: 100%;
@@ -5,40 +9,9 @@
 	flex-direction: column;
 }
 
-.csv-toolbar {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 8px 16px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	background-color: var(--background-primary-alt);
-}
-
-.csv-toggle-header {
-	background-color: var(--interactive-normal);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	padding: 4px 12px;
-	cursor: pointer;
-	font-size: var(--font-ui-small);
-	color: var(--text-normal);
-	transition: background-color 0.1s ease;
-}
-
-.csv-toggle-header:hover {
-	background-color: var(--interactive-hover);
-}
-
-.csv-info {
-	font-size: var(--font-ui-small);
-	color: var(--text-muted);
-	margin-left: auto;
-}
-
 .csv-table-wrapper {
 	flex: 1;
 	overflow: auto;
-	padding: 16px;
 }
 
 .csv-table {
@@ -83,13 +56,84 @@
 	background-color: var(--background-modifier-hover);
 }
 
-.csv-table tbody tr:nth-child(even) {
-	background-color: var(--background-primary-alt);
-}
-
 .csv-empty {
 	padding: 32px;
 	text-align: center;
 	color: var(--text-muted);
 	font-style: italic;
+}
+
+/* Bottom format bar — TableTool-inspired */
+
+.csv-format-bar {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+	padding: 6px 12px;
+	border-top: 1px solid var(--background-modifier-border);
+	background-color: var(--background-secondary);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	flex-wrap: wrap;
+}
+
+.csv-format-info {
+	color: var(--text-faint);
+	margin-right: auto;
+}
+
+.csv-format-group {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.csv-format-label {
+	color: var(--text-muted);
+}
+
+.csv-format-segment {
+	display: inline-flex;
+	align-items: stretch;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	background-color: var(--background-primary);
+	padding: 2px;
+	height: 26px;
+}
+
+.csv-format-seg-btn {
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 999px;
+	color: var(--text-normal);
+	padding: 0 10px;
+	font-size: var(--font-ui-smaller);
+	font-family: var(--font-monospace);
+	cursor: pointer;
+	min-width: 22px;
+	height: 100%;
+	box-shadow: none;
+	transition:
+		background-color 0.08s ease,
+		border-color 0.08s ease;
+}
+
+.csv-format-seg-btn:hover:not(.is-active) {
+	background-color: var(--background-modifier-hover);
+}
+
+.csv-format-seg-btn.is-active {
+	background-color: hsl(var(--interactive-accent-hsl) / 0.18);
+	border-color: hsl(var(--interactive-accent-hsl) / 0.5);
+	color: var(--text-normal);
+}
+
+/* Divider only between two adjacent inactive segments */
+.csv-format-seg-btn:not(.is-active) + .csv-format-seg-btn:not(.is-active) {
+	box-shadow: inset 1px 0 0 0 var(--background-modifier-border);
+}
+
+.csv-format-checkbox {
+	margin: 0;
 }
