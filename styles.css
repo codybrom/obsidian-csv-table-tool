@@ -133,6 +133,33 @@ body.csv-resizing * {
 	background-color: var(--background-modifier-hover);
 }
 
+/* Inline cell editing */
+
+.csv-table td.csv-editing,
+.csv-table th.csv-editing {
+	padding: 0;
+	background-color: var(--background-primary);
+}
+
+.csv-cell-input {
+	display: block;
+	width: 100%;
+	min-height: 100%;
+	padding: 5px 8px;
+	margin: 0;
+	border: none;
+	background: transparent;
+	color: var(--text-normal);
+	font: inherit;
+	resize: none;
+	box-sizing: border-box;
+	box-shadow: inset 0 0 0 2px var(--interactive-accent);
+	outline: none;
+	overflow: hidden;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
 /* Row index column */
 
 .csv-table th.csv-rowidx-th,

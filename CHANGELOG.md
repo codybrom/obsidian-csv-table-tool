@@ -9,7 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Planned: cell editing with safe write-back (0.4.0) and CSV format conversion (0.5.0).
+Planned: add/delete row + column (0.4.x), CSV format conversion (0.5.0).
+
+## [0.4.0] - 2026-05-07
+
+### Added
+
+- **Cell editing.** Double-click any data cell or header to edit; **Enter** commits, **Shift+Enter** inserts a newline, **Esc** cancels. The full file is re-serialized to disk on commit using the active separator / quote / line-ending settings.
+- Line-ending detection on file open (`detectLineEnding`) and round-trip preservation (`\n` vs `\r\n`).
+
+### Changed
+
+- **CSV parser/serializer now uses [papaparse](https://www.papaparse.com/)** instead of the hand-rolled implementation. Battle-tested edge case handling (BOM markers, embedded `\r` inside quoted fields, RFC 4180 escape rules, etc.) — and `Papa.unparse` handles all the escaping logic when writing back to disk after an edit. Bundle size grows from ~10 KB to ~47 KB; still tiny.
+- The detection helpers (`detectSeparator`, `detectQuote`, `detectLineEnding`, `detectNumericColumns`) remain in-house — they map specifically to the format-bar UI rather than papaparse's auto-detection.
+
+### Fixed
+
+- Self-triggered `vault.modify` events no longer cause a redundant re-render after a cell edit (a `suppressNextModify` flag tracks our own writes).
 
 ## [0.3.0] - 2026-05-07
 
@@ -80,7 +96,8 @@ Planned: cell editing with safe write-back (0.4.0) and CSV format conversion (0.
 - First-row-as-header toggle (per-file, with a global default in settings).
 - Hand-rolled CSV parser supporting quoted fields, embedded commas, embedded newlines, escaped `""`, and both `\n` / `\r\n` line endings.
 
-[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.1...0.3.0
 [0.2.1]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.1.0...0.2.0

@@ -1,6 +1,6 @@
 {
 	"name": "csv-table-tool",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "Open CSV files as native tables in Obsidian.",
 	"main": "main.js",
 	"type": "module",
@@ -26,9 +26,13 @@
 	],
 	"author": "Cody Bromley",
 	"license": "MIT",
+	"dependencies": {
+		"papaparse": "^5.5.3"
+	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.4",
 		"@types/node": "^25.6.1",
+		"@types/papaparse": "^5.5.2",
 		"esbuild": "^0.28.0",
 		"eslint": "^9.39.4",
 		"eslint-config-prettier": "^9.1.2",

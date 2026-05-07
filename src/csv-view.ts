@@ -1,8 +1,10 @@
 import { FileView, TFile, WorkspaceLeaf } from "obsidian";
 import {
 	parseCSV,
+	serializeCSV,
 	detectSeparator,
 	detectQuote,
+	detectLineEnding,
 	detectNumericColumns,
 	ParseOptions,
 	QuoteStyle,
@@ -66,6 +68,7 @@ export class CSVView extends FileView {
 	private treatFirstRowAsHeader = true;
 	private showRowIndex = true;
 	private fitWidth = false;
+	private suppressNextModify = false;
 
 	constructor(leaf: WorkspaceLeaf, plugin: CSVTableToolPlugin) {
 		super(leaf);
@@ -88,10 +91,16 @@ export class CSVView extends FileView {
 		const content = await this.app.vault.cachedRead(file);
 		this.options.separator = detectSeparator(content);
 		this.options.quote = detectQuote(content);
+		this.options.lineEnding = detectLineEnding(content);
 
 		this.registerEvent(
 			this.app.vault.on("modify", (changed) => {
-				if (changed === this.file) void this.render();
+				if (changed !== this.file) return;
+				if (this.suppressNextModify) {
+					this.suppressNextModify = false;
+					return;
+				}
+				void this.render();
 			})
 		);
 
@@ -178,6 +187,7 @@ export class CSVView extends FileView {
 				th.createSpan({ cls: "csv-th-content", text: headerRow[i] });
 				if (numericCols[i]) th.addClass("csv-numeric");
 				this.attachResize(th, cols[colIdx]);
+				this.attachEdit(th, 0, i);
 				colIdx++;
 			}
 		} else {
@@ -195,6 +205,7 @@ export class CSVView extends FileView {
 			}
 		}
 
+		const dataRowFileOffset = this.treatFirstRowAsHeader ? 1 : 0;
 		const lineOffset = this.treatFirstRowAsHeader ? 2 : 1;
 		for (let r = 0; r < dataRows.length; r++) {
 			const row = dataRows[r] ?? [];
@@ -205,10 +216,12 @@ export class CSVView extends FileView {
 			for (let c = 0; c < row.length; c++) {
 				const td = tr.createEl("td", { text: row[c] });
 				if (numericCols[c]) td.addClass("csv-numeric");
+				this.attachEdit(td, r + dataRowFileOffset, c);
 			}
 			for (let c = row.length; c < maxCols; c++) {
 				const td = tr.createEl("td", { text: "" });
 				if (numericCols[c]) td.addClass("csv-numeric");
+				this.attachEdit(td, r + dataRowFileOffset, c);
 			}
 		}
 	}
@@ -270,6 +283,75 @@ export class CSVView extends FileView {
 			doc.addEventListener("mousemove", onMove);
 			doc.addEventListener("mouseup", onUp);
 		});
+	}
+
+	private attachEdit(cell: HTMLElement, fileRow: number, col: number): void {
+		cell.addEventListener("dblclick", (evt) => {
+			evt.preventDefault();
+			this.startEdit(cell, fileRow, col);
+		});
+	}
+
+	private startEdit(cell: HTMLElement, fileRow: number, col: number): void {
+		if (cell.classList.contains("csv-editing")) return;
+		const original = cell.textContent ?? "";
+		cell.empty();
+		cell.addClass("csv-editing");
+
+		const input = cell.createEl("textarea", { cls: "csv-cell-input" });
+		input.value = original;
+		input.rows = 1;
+		const adjustHeight = () => {
+			input.setCssProps({ height: "auto" });
+			input.setCssProps({ height: `${input.scrollHeight}px` });
+		};
+		input.addEventListener("input", adjustHeight);
+
+		// Focus and select-all on next tick so the textarea is in the DOM.
+		window.setTimeout(() => {
+			input.focus();
+			input.select();
+			adjustHeight();
+		}, 0);
+
+		let resolved = false;
+		const finish = (commit: boolean) => {
+			if (resolved) return;
+			resolved = true;
+			cell.removeClass("csv-editing");
+			if (commit && input.value !== original) {
+				void this.commitEdit(fileRow, col, input.value);
+			} else {
+				void this.render();
+			}
+		};
+
+		input.addEventListener("keydown", (e: KeyboardEvent) => {
+			if (e.key === "Enter" && !e.shiftKey) {
+				e.preventDefault();
+				finish(true);
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				finish(false);
+			}
+		});
+		input.addEventListener("blur", () => finish(true));
+	}
+
+	private async commitEdit(fileRow: number, col: number, value: string): Promise<void> {
+		if (!this.file) return;
+		const content = await this.app.vault.read(this.file);
+		const rows = parseCSV(content, this.options);
+		const target = rows[fileRow];
+		if (!target) return;
+		// Pad short rows to reach the edited column.
+		while (target.length <= col) target.push("");
+		if (target[col] === value) return;
+		target[col] = value;
+
+		this.suppressNextModify = true;
+		await this.app.vault.modify(this.file, serializeCSV(rows, this.options));
+		void this.render();
 	}
 
 	private persistColumnWidths(): void {

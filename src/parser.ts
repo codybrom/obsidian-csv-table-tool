@@ -1,74 +1,71 @@
+import Papa, { type ParseConfig, type UnparseConfig } from "papaparse";
+
 export type QuoteStyle = "double" | "backslash" | "none";
+export type LineEnding = "\n" | "\r\n";
 
 export interface ParseOptions {
 	separator: string;
 	quote: QuoteStyle;
+	lineEnding: LineEnding;
 }
 
 export const DEFAULT_OPTIONS: ParseOptions = {
 	separator: ",",
 	quote: "double",
+	lineEnding: "\n",
 };
 
+// A character we don't expect in CSV data, used to neutralize quoteChar/escapeChar
+// when the user has selected "none" mode (i.e. treat everything as literal).
+const NEUTRAL_CHAR = "\x00";
+
+function quoteCharsFor(quote: QuoteStyle): { quoteChar: string; escapeChar: string } {
+	switch (quote) {
+		case "backslash":
+			return { quoteChar: '"', escapeChar: "\\" };
+		case "none":
+			return { quoteChar: NEUTRAL_CHAR, escapeChar: NEUTRAL_CHAR };
+		default:
+			return { quoteChar: '"', escapeChar: '"' };
+	}
+}
+
 export function parseCSV(text: string, options: ParseOptions = DEFAULT_OPTIONS): string[][] {
-	const { separator, quote } = options;
-	const rows: string[][] = [];
-	let currentRow: string[] = [];
-	let currentField = "";
-	let inQuotes = false;
-	let i = 0;
-
-	while (i < text.length) {
-		const char = text[i] as string;
-		const nextChar = text[i + 1];
-
-		if (inQuotes) {
-			if (quote === "double" && char === '"') {
-				if (nextChar === '"') {
-					currentField += '"';
-					i += 2;
-					continue;
-				}
-				inQuotes = false;
-			} else if (quote === "backslash" && char === "\\" && nextChar === '"') {
-				currentField += '"';
-				i += 2;
-				continue;
-			} else if (quote === "backslash" && char === '"') {
-				inQuotes = false;
-			} else {
-				currentField += char;
-			}
-		} else {
-			if (quote !== "none" && char === '"') {
-				inQuotes = true;
-			} else if (char === separator) {
-				currentRow.push(currentField);
-				currentField = "";
-			} else if (char === "\r") {
-				if (nextChar === "\n") i++;
-				currentRow.push(currentField);
-				rows.push(currentRow);
-				currentRow = [];
-				currentField = "";
-			} else if (char === "\n") {
-				currentRow.push(currentField);
-				rows.push(currentRow);
-				currentRow = [];
-				currentField = "";
-			} else {
-				currentField += char;
-			}
-		}
-		i++;
+	const { quoteChar, escapeChar } = quoteCharsFor(options.quote);
+	const config: ParseConfig = {
+		delimiter: options.separator,
+		quoteChar,
+		escapeChar,
+		skipEmptyLines: false,
+	};
+	const result = Papa.parse<string[]>(text, config);
+	// Papa appends a trailing empty row for files ending in a newline; drop it
+	// to match the previous parser's behaviour.
+	const data = result.data;
+	const last = data[data.length - 1];
+	if (data.length > 0 && last && last.length === 1 && last[0] === "") {
+		data.pop();
 	}
+	return data;
+}
 
-	currentRow.push(currentField);
-	if (currentRow.length > 1 || currentRow[0] !== "") {
-		rows.push(currentRow);
-	}
+export function serializeCSV(rows: string[][], options: ParseOptions): string {
+	const { quoteChar, escapeChar } = quoteCharsFor(options.quote);
+	const config: UnparseConfig = {
+		delimiter: options.separator,
+		newline: options.lineEnding,
+		quoteChar,
+		escapeChar,
+		header: false,
+		// In "none" mode we never quote — caller is on their own for round-tripping.
+		quotes: options.quote === "none" ? false : undefined,
+	};
+	return Papa.unparse(rows, config);
+}
 
-	return rows;
+export function detectLineEnding(text: string): LineEnding {
+	// Sample the first ~8K bytes — if any \r\n appears we treat the file as CRLF.
+	return text.slice(0, 8000).includes("\r\n") ? "\r\n" : "\n";
 }
 
 export function detectQuote(text: string): QuoteStyle {
