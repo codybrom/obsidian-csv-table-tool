@@ -9,7 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Planned: community-plugins submission.
+Planned: demo GIF and submission to the Obsidian community plugins gallery.
+
+## [1.0.0] - 2026-05-07
+
+Graduation to a stable 1.0. The plugin reached feature density worth marking — viewing, editing, format conversion, and full keyboard navigation all in place — and this release packages it for real-world distribution.
+
+### Added
+
+- `LICENSE` file (MIT).
+- Rewritten `README.md` with feature sections, keyboard reference, format-spec reference, and install instructions.
+- `.github/workflows/check.yml` — GitHub Actions runs `npm run check` and `npm run build` on every push to `main` and every pull request.
+
+### Changed
+
+- No behavior changes from `0.6.1`. This is a packaging / docs / CI release — the code is the same.
 
 ## [0.6.1] - 2026-05-07
 
@@ -22,10 +36,10 @@ Planned: community-plugins submission.
 ### Added
 
 - **Keyboard navigation.** Click a cell or Tab into the table to give it focus, then:
-  - **Arrow keys** move the active cell up/down/left/right (bounded to the table).
-  - **Tab** / **Shift+Tab** advance horizontally (and stay inside the table — won't escape into the format bar).
-  - **Enter** or **F2** on the active cell enters edit mode.
-  - In edit mode: **Enter** commits + moves down, **Tab** / **Shift+Tab** commit + advance horizontally, **Shift+Enter** inserts a newline, **Esc** cancels.
+    - **Arrow keys** move the active cell up/down/left/right (bounded to the table).
+    - **Tab** / **Shift+Tab** advance horizontally (and stay inside the table — won't escape into the format bar).
+    - **Enter** or **F2** on the active cell enters edit mode.
+    - In edit mode: **Enter** commits + moves down, **Tab** / **Shift+Tab** commit + advance horizontally, **Shift+Enter** inserts a newline, **Esc** cancels.
 - Active-cell focus ring rendered as an outline (no layout shift).
 - After every edit commit, the table scroll wrapper regrabs focus so subsequent keys keep flowing through the table's keyboard handler.
 - Clicking anywhere inside the table area focuses the wrapper (mousedown), so arrow keys work consistently regardless of where focus was previously.
@@ -73,8 +87,8 @@ Planned: community-plugins submission.
 - Drag-to-resize column handles on every header (visible in natural-width mode).
 - Per-file column widths held in memory on the plugin instance — survives close/reopen within an Obsidian session.
 - "Fit width" toggle in the format bar (default off):
-  - Off: natural-width mode (`table-layout: fixed`, `width: max-content`) with heuristic starting widths and resize handles.
-  - On: auto-fit mode (`table-layout: auto`, `width: 100%`) where the browser distributes column widths and resize handles are hidden.
+    - Off: natural-width mode (`table-layout: fixed`, `width: max-content`) with heuristic starting widths and resize handles.
+    - On: auto-fit mode (`table-layout: auto`, `width: 100%`) where the browser distributes column widths and resize handles are hidden.
 
 ### Changed
 
@@ -130,7 +144,8 @@ Planned: community-plugins submission.
 - First-row-as-header toggle (per-file, with a global default in settings).
 - Hand-rolled CSV parser supporting quoted fields, embedded commas, embedded newlines, escaped `""`, and both `\n` / `\r\n` line endings.
 
-[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.6.1...1.0.0
 [0.6.1]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.4.0...0.5.0
