@@ -9,17 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Planned: sort-by-column, Home/End/PageUp/PageDown nav, community-plugins submission.
+Planned: community-plugins submission.
+
+## [0.6.1] - 2026-05-07
+
+### Added
+
+- Extended keyboard navigation: **Home** / **End** jump to the first/last column of the current row; **Cmd/Ctrl+Home** / **Cmd/Ctrl+End** jump to the table corners; **PageUp** / **PageDown** advance by ~one viewport of rows (computed from the wrapper height and current row height).
 
 ## [0.6.0] - 2026-05-07
 
 ### Added
 
 - **Keyboard navigation.** Click a cell or Tab into the table to give it focus, then:
-    - **Arrow keys** move the active cell up/down/left/right (bounded to the table).
-    - **Tab** / **Shift+Tab** advance horizontally (and stay inside the table — won't escape into the format bar).
-    - **Enter** or **F2** on the active cell enters edit mode.
-    - In edit mode: **Enter** commits + moves down, **Tab** / **Shift+Tab** commit + advance horizontally, **Shift+Enter** inserts a newline, **Esc** cancels.
+  - **Arrow keys** move the active cell up/down/left/right (bounded to the table).
+  - **Tab** / **Shift+Tab** advance horizontally (and stay inside the table — won't escape into the format bar).
+  - **Enter** or **F2** on the active cell enters edit mode.
+  - In edit mode: **Enter** commits + moves down, **Tab** / **Shift+Tab** commit + advance horizontally, **Shift+Enter** inserts a newline, **Esc** cancels.
 - Active-cell focus ring rendered as an outline (no layout shift).
 - After every edit commit, the table scroll wrapper regrabs focus so subsequent keys keep flowing through the table's keyboard handler.
 - Clicking anywhere inside the table area focuses the wrapper (mousedown), so arrow keys work consistently regardless of where focus was previously.
@@ -67,8 +73,8 @@ Planned: sort-by-column, Home/End/PageUp/PageDown nav, community-plugins submiss
 - Drag-to-resize column handles on every header (visible in natural-width mode).
 - Per-file column widths held in memory on the plugin instance — survives close/reopen within an Obsidian session.
 - "Fit width" toggle in the format bar (default off):
-    - Off: natural-width mode (`table-layout: fixed`, `width: max-content`) with heuristic starting widths and resize handles.
-    - On: auto-fit mode (`table-layout: auto`, `width: 100%`) where the browser distributes column widths and resize handles are hidden.
+  - Off: natural-width mode (`table-layout: fixed`, `width: max-content`) with heuristic starting widths and resize handles.
+  - On: auto-fit mode (`table-layout: auto`, `width: 100%`) where the browser distributes column widths and resize handles are hidden.
 
 ### Changed
 
@@ -124,7 +130,8 @@ Planned: sort-by-column, Home/End/PageUp/PageDown nav, community-plugins submiss
 - First-row-as-header toggle (per-file, with a global default in settings).
 - Hand-rolled CSV parser supporting quoted fields, embedded commas, embedded newlines, escaped `""`, and both `\n` / `\r\n` line endings.
 
-[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.6.1...HEAD
+[0.6.1]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.3.0...0.4.0

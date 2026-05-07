@@ -1,7 +1,7 @@
 {
 	"name": "CSV Table Tool",
 	"id": "csv-table-tool",
-	"version": "0.6.0",
+	"version": "0.6.1",
 	"minAppVersion": "1.0.0",
 	"description": "Open CSV files as native tables in Obsidian.",
 	"author": "Cody Bromley",

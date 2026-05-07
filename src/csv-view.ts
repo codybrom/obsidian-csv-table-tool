@@ -191,6 +191,11 @@ export class CSVView extends FileView {
 		const { fileRow, col } = this.activeCell;
 		let next: { fileRow: number; col: number } | null = null;
 
+		const totalRows = this.totalFileRowCount();
+		const totalCols = this.totalColCount();
+		const pageSize = this.getPageSize();
+		const jumpToCorner = e.metaKey || e.ctrlKey;
+
 		switch (e.key) {
 			case "ArrowUp":
 				next = { fileRow: fileRow - 1, col };
@@ -206,6 +211,21 @@ export class CSVView extends FileView {
 				break;
 			case "Tab":
 				next = { fileRow, col: col + (e.shiftKey ? -1 : 1) };
+				break;
+			case "Home":
+				next = { fileRow: jumpToCorner ? 0 : fileRow, col: 0 };
+				break;
+			case "End":
+				next = {
+					fileRow: jumpToCorner ? totalRows - 1 : fileRow,
+					col: totalCols - 1,
+				};
+				break;
+			case "PageUp":
+				next = { fileRow: fileRow - pageSize, col };
+				break;
+			case "PageDown":
+				next = { fileRow: fileRow + pageSize, col };
 				break;
 			case "Enter":
 			case "F2": {
@@ -244,6 +264,17 @@ export class CSVView extends FileView {
 		const headerCells = this.tableEl.tHead?.rows[0]?.cells.length ?? 0;
 		const offset = this.showRowIndex ? 1 : 0;
 		return Math.max(0, headerCells - offset);
+	}
+
+	private getPageSize(): number {
+		const wrapper = this.contentEl.querySelector(".csv-table-wrapper");
+		const firstBodyRow = this.tableEl.tBodies[0]?.rows[0];
+		if (!(wrapper instanceof HTMLElement) || !firstBodyRow) return 10;
+		const rowHeight = firstBodyRow.offsetHeight;
+		if (rowHeight <= 0) return 10;
+		// Subtract one row's worth of context so the new active cell isn't at
+		// the very edge of the viewport.
+		return Math.max(1, Math.floor(wrapper.clientHeight / rowHeight) - 1);
 	}
 
 	private renderTable(wrapper: HTMLElement, rows: string[][], firstRow: string[]): void {
