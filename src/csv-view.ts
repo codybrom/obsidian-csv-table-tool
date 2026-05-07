@@ -1,4 +1,4 @@
-import { FileView, TFile, WorkspaceLeaf } from "obsidian";
+import { FileView, Menu, TFile, WorkspaceLeaf } from "obsidian";
 import {
 	parseCSV,
 	serializeCSV,
@@ -11,6 +11,7 @@ import {
 	DEFAULT_OPTIONS,
 } from "./parser";
 import CSVTableToolPlugin from "./main";
+import { ConvertModal, ConvertResult } from "./convert-modal";
 
 export const VIEW_TYPE_CSV = "csv-table-tool-view";
 
@@ -188,6 +189,7 @@ export class CSVView extends FileView {
 				if (numericCols[i]) th.addClass("csv-numeric");
 				this.attachResize(th, cols[colIdx]);
 				this.attachEdit(th, 0, i);
+				this.attachContextMenu(th, 0, i);
 				colIdx++;
 			}
 		} else {
@@ -201,6 +203,7 @@ export class CSVView extends FileView {
 				});
 				if (numericCols[i]) th.addClass("csv-numeric");
 				this.attachResize(th, cols[colIdx]);
+				this.attachContextMenu(th, null, i);
 				colIdx++;
 			}
 		}
@@ -211,17 +214,23 @@ export class CSVView extends FileView {
 			const row = dataRows[r] ?? [];
 			const tr = tbody.createEl("tr");
 			if (this.showRowIndex) {
-				tr.createEl("td", { cls: "csv-rowidx", text: String(r + lineOffset) });
+				const idxTd = tr.createEl("td", {
+					cls: "csv-rowidx",
+					text: String(r + lineOffset),
+				});
+				this.attachContextMenu(idxTd, r + dataRowFileOffset, null);
 			}
 			for (let c = 0; c < row.length; c++) {
 				const td = tr.createEl("td", { text: row[c] });
 				if (numericCols[c]) td.addClass("csv-numeric");
 				this.attachEdit(td, r + dataRowFileOffset, c);
+				this.attachContextMenu(td, r + dataRowFileOffset, c);
 			}
 			for (let c = row.length; c < maxCols; c++) {
 				const td = tr.createEl("td", { text: "" });
 				if (numericCols[c]) td.addClass("csv-numeric");
 				this.attachEdit(td, r + dataRowFileOffset, c);
+				this.attachContextMenu(td, r + dataRowFileOffset, c);
 			}
 		}
 	}
@@ -338,6 +347,189 @@ export class CSVView extends FileView {
 		input.addEventListener("blur", () => finish(true));
 	}
 
+	private attachContextMenu(cell: HTMLElement, fileRow: number | null, col: number | null): void {
+		cell.addEventListener("contextmenu", (evt: MouseEvent) => {
+			// While editing, the textarea's native menu has Cut/Copy/Paste.
+			if (this.contentEl.querySelector(".csv-editing")) return;
+
+			// Defer to the native menu when any text is selected on the page or
+			// the click target is a form control (textarea/input).
+			const target = evt.target;
+			if (
+				target instanceof HTMLElement &&
+				(target.tagName === "TEXTAREA" || target.tagName === "INPUT")
+			) {
+				return;
+			}
+			const sel = cell.ownerDocument.getSelection();
+			if (sel && !sel.isCollapsed && sel.toString().length > 0) {
+				return;
+			}
+
+			evt.preventDefault();
+			evt.stopPropagation();
+			this.showCellMenu(evt, cell, fileRow, col);
+		});
+	}
+
+	private showCellMenu(
+		evt: MouseEvent,
+		cell: HTMLElement,
+		fileRow: number | null,
+		col: number | null
+	): void {
+		const menu = new Menu();
+		const isDataCell = fileRow !== null && col !== null;
+		const cellValue = isDataCell ? (cell.textContent ?? "") : "";
+
+		if (isDataCell) {
+			menu.addItem((item) =>
+				item
+					.setTitle("Copy cell")
+					.setIcon("copy")
+					.onClick(() => {
+						void navigator.clipboard.writeText(cellValue);
+					})
+			);
+			menu.addItem((item) =>
+				item
+					.setTitle("Cut cell")
+					.setIcon("scissors")
+					.onClick(() => {
+						void (async () => {
+							await navigator.clipboard.writeText(cellValue);
+							await this.commitEdit(fileRow, col, "");
+						})();
+					})
+			);
+			menu.addItem((item) =>
+				item
+					.setTitle("Paste into cell")
+					.setIcon("clipboard-paste")
+					.onClick(() => {
+						void (async () => {
+							try {
+								const text = await navigator.clipboard.readText();
+								await this.commitEdit(fileRow, col, text);
+							} catch {
+								// Clipboard read can fail (permissions, no text); ignore.
+							}
+						})();
+					})
+			);
+			menu.addSeparator();
+		}
+
+		let added = false;
+		if (fileRow !== null) {
+			menu.addItem((item) =>
+				item
+					.setTitle("Insert row above")
+					.setIcon("arrow-up")
+					.onClick(() => void this.insertRow(fileRow, "above"))
+			);
+			menu.addItem((item) =>
+				item
+					.setTitle("Insert row below")
+					.setIcon("arrow-down")
+					.onClick(() => void this.insertRow(fileRow, "below"))
+			);
+			added = true;
+		}
+
+		if (col !== null) {
+			if (added) menu.addSeparator();
+			menu.addItem((item) =>
+				item
+					.setTitle("Insert column left")
+					.setIcon("arrow-left")
+					.onClick(() => void this.insertColumn(col, "left"))
+			);
+			menu.addItem((item) =>
+				item
+					.setTitle("Insert column right")
+					.setIcon("arrow-right")
+					.onClick(() => void this.insertColumn(col, "right"))
+			);
+			added = true;
+		}
+
+		if (fileRow !== null || col !== null) {
+			menu.addSeparator();
+			if (fileRow !== null) {
+				menu.addItem((item) =>
+					item
+						.setTitle("Delete row")
+						.setIcon("trash")
+						.setWarning(true)
+						.onClick(() => void this.deleteRow(fileRow))
+				);
+			}
+			if (col !== null) {
+				menu.addItem((item) =>
+					item
+						.setTitle("Delete column")
+						.setIcon("trash")
+						.setWarning(true)
+						.onClick(() => void this.deleteColumn(col))
+				);
+			}
+		}
+
+		menu.showAtMouseEvent(evt);
+	}
+
+	private async writeRows(rows: string[][]): Promise<void> {
+		if (!this.file) return;
+		this.suppressNextModify = true;
+		await this.app.vault.modify(this.file, serializeCSV(rows, this.options));
+		void this.render();
+	}
+
+	private async insertRow(fileRow: number, where: "above" | "below"): Promise<void> {
+		if (!this.file) return;
+		const content = await this.app.vault.read(this.file);
+		const rows = parseCSV(content, this.options);
+		const colCount = rows[0]?.length ?? 1;
+		const newRow = new Array<string>(colCount).fill("");
+		const insertAt = where === "above" ? fileRow : fileRow + 1;
+		rows.splice(insertAt, 0, newRow);
+		await this.writeRows(rows);
+	}
+
+	private async deleteRow(fileRow: number): Promise<void> {
+		if (!this.file) return;
+		const content = await this.app.vault.read(this.file);
+		const rows = parseCSV(content, this.options);
+		if (rows.length <= 1) return; // refuse to leave the file empty
+		rows.splice(fileRow, 1);
+		await this.writeRows(rows);
+	}
+
+	private async insertColumn(col: number, where: "left" | "right"): Promise<void> {
+		if (!this.file) return;
+		const content = await this.app.vault.read(this.file);
+		const rows = parseCSV(content, this.options);
+		const insertAt = where === "left" ? col : col + 1;
+		for (const row of rows) {
+			while (row.length < insertAt) row.push("");
+			row.splice(insertAt, 0, "");
+		}
+		await this.writeRows(rows);
+	}
+
+	private async deleteColumn(col: number): Promise<void> {
+		if (!this.file) return;
+		const content = await this.app.vault.read(this.file);
+		const rows = parseCSV(content, this.options);
+		const colCount = rows[0]?.length ?? 0;
+		if (colCount <= 1) return; // refuse to leave the file with zero columns
+		for (const row of rows) {
+			if (row.length > col) row.splice(col, 1);
+		}
+		await this.writeRows(rows);
+	}
+
 	private async commitEdit(fileRow: number, col: number, value: string): Promise<void> {
 		if (!this.file) return;
 		const content = await this.app.vault.read(this.file);
@@ -348,10 +540,7 @@ export class CSVView extends FileView {
 		while (target.length <= col) target.push("");
 		if (target[col] === value) return;
 		target[col] = value;
-
-		this.suppressNextModify = true;
-		await this.app.vault.modify(this.file, serializeCSV(rows, this.options));
-		void this.render();
+		await this.writeRows(rows);
 	}
 
 	private persistColumnWidths(): void {
@@ -387,6 +576,29 @@ export class CSVView extends FileView {
 		this.renderCheckbox(bar, "Fit width", this.fitWidth, (value) => {
 			this.fitWidth = value;
 		});
+	}
+
+	openConvertModal(): void {
+		new ConvertModal(this.app, this.options, (result) => {
+			void this.applyConversion(result);
+		}).open();
+	}
+
+	private async applyConversion(result: ConvertResult): Promise<void> {
+		if (!this.file) return;
+		const content = await this.app.vault.read(this.file);
+		// Parse with current options, then re-serialize with the new options.
+		const rows = parseCSV(content, this.options);
+		const newOptions: ParseOptions = {
+			separator: result.separator,
+			quote: result.quote,
+			lineEnding: result.lineEnding,
+		};
+		this.suppressNextModify = true;
+		await this.app.vault.modify(this.file, serializeCSV(rows, newOptions));
+		// File is now in the new format — reflect that in the view.
+		this.options = newOptions;
+		void this.render();
 	}
 
 	private renderCheckbox(

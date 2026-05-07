@@ -9,7 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Planned: add/delete row + column (0.4.x), CSV format conversion (0.5.0).
+Planned: keyboard navigation between cells, sort-by-column, community-plugins submission.
+
+## [0.5.0] - 2026-05-07
+
+### Added
+
+- **Right-click context menu** on cells, headers, and the row-index column with cell-level Cut / Copy / Paste plus row and column add/delete actions. Defers to the native context menu when text is selected or the cell is being edited (so OS-level copy/paste still works).
+- **Format conversion ("Convert CSV format…")** — rewrite a file with a different separator, quote style, or line ending. Available from the file explorer's right-click menu on any `.csv` and from the command palette. The data is re-serialized through papaparse with the new spec; the file's on-disk encoding changes but its data is preserved. The format bar updates to reflect the new spec after conversion.
+
+### Changed
+
+- Convert is a top-level action (file menu + palette command) rather than a button in the format bar — matches TableTool's "Convert is a window-level toolbar action, not a spec-panel control" model.
 
 ## [0.4.0] - 2026-05-07
 
@@ -96,7 +107,8 @@ Planned: add/delete row + column (0.4.x), CSV format conversion (0.5.0).
 - First-row-as-header toggle (per-file, with a global default in settings).
 - Hand-rolled CSV parser supporting quoted fields, embedded commas, embedded newlines, escaped `""`, and both `\n` / `\r\n` line endings.
 
-[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.1...0.3.0
 [0.2.1]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.0...0.2.1
