@@ -50,8 +50,8 @@ Planned: keyboard navigation between cells, sort-by-column, community-plugins su
 - Drag-to-resize column handles on every header (visible in natural-width mode).
 - Per-file column widths held in memory on the plugin instance — survives close/reopen within an Obsidian session.
 - "Fit width" toggle in the format bar (default off):
-    - Off: natural-width mode (`table-layout: fixed`, `width: max-content`) with heuristic starting widths and resize handles.
-    - On: auto-fit mode (`table-layout: auto`, `width: 100%`) where the browser distributes column widths and resize handles are hidden.
+  - Off: natural-width mode (`table-layout: fixed`, `width: max-content`) with heuristic starting widths and resize handles.
+  - On: auto-fit mode (`table-layout: auto`, `width: 100%`) where the browser distributes column widths and resize handles are hidden.
 
 ### Changed
 
