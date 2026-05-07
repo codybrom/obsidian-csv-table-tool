@@ -20,13 +20,16 @@ This is an Obsidian community plugin. Obsidian loads `main.js` (the esbuild outp
 
 The plugin registers a custom `FileView` for the `.csv` extension:
 
-- `src/main.ts` — `CSVTableToolPlugin.onload()` calls `registerView(VIEW_TYPE_CSV, ...)` and `registerExtensions(["csv"], VIEW_TYPE_CSV)`. After this, double-clicking any `.csv` file in the vault opens it through `CSVView` instead of the default text editor.
-- `src/csv-view.ts` — `CSVView extends FileView`. Renders the table in `onLoadFile` / `render()` by calling `this.app.vault.cachedRead(file)` and feeding the text to the parser. The toolbar's "Header: On/Off" toggle flips `this.treatFirstRowAsHeader` (a per-view instance field initialized from the global setting at construction) and re-renders. Per-view toggles are _not_ persisted — only the default in settings is.
-- `src/parser.ts` — Hand-rolled CSV parser (state machine over characters). Handles quoted fields, embedded commas, embedded newlines inside quotes, escaped `""`, and both `\n` and `\r\n` line endings. There is no third-party CSV library; modify this file rather than swapping it out unless you have a reason.
-- `src/settings.ts` + `src/settings-tab.ts` — Single boolean setting (`treatFirstRowAsHeader`) persisted via `Plugin.loadData()`/`saveData()`.
-- `styles.css` — Loaded automatically by Obsidian. Uses Obsidian theme CSS variables (`--background-*`, `--text-*`, etc.) so tables match the active theme.
+- `src/main.ts` — `CSVTableToolPlugin.onload()` calls `registerView(VIEW_TYPE_CSV, ...)` and `registerExtensions(["csv"], VIEW_TYPE_CSV)`. The plugin has no settings tab — all options are per-document (TableTool's design).
+- `src/csv-view.ts` — `CSVView extends FileView`. On `onLoadFile`, runs `detectSeparator()` against the file content, then `render()`. State (`ParseOptions { separator, quote }` and `treatFirstRowAsHeader`) lives on the view instance and is _not_ persisted. The bottom format bar (`renderFormatBar`) provides segmented `role="radiogroup"` controls for Separator and Quote plus a Header checkbox; changing any control mutates view state and triggers a re-render.
+- `src/parser.ts` — Hand-rolled CSV parser (state machine over characters). Takes `ParseOptions` for `separator` (any single char) and `quote` (`"double"` / `"backslash"` / `"none"`). Handles embedded commas, embedded newlines inside quotes, escaped `""` (or `\"`), and both `\n` / `\r\n` line endings. Also exports `detectSeparator(text)` — variance-weighted heuristic over the first 10 lines, scoring `,` `;` `\t` `|`. There is no third-party CSV library.
+- `styles.css` — Loaded automatically by Obsidian. Uses Obsidian theme CSS variables (`--background-*`, `--text-*`, `--interactive-accent-hsl`, etc.) so the view matches the active theme. Includes a scoped `[data-type="csv-table-tool-view"] .view-content { padding: 0 }` override so the format bar sits flush at the bottom.
 
-When changing the view's render flow, remember `render()` empties `contentEl` and rebuilds it from scratch — it's called both on initial load and on every header toggle.
+When changing the view's render flow, remember `render()` empties `contentEl` and rebuilds it from scratch — it's called both on initial load and every time a format bar control toggles.
+
+## Minimum Obsidian version
+
+`manifest.json`'s `minAppVersion` is `1.0.0`. This is the _practical_ floor (Obsidian 1.0 shipped October 2022 and is what we test against), not the technical API floor — every API the plugin uses (`FileView`, `registerView`, `registerExtensions`, `vault.cachedRead`) was already present in v0.9.x; the binding constraint among current APIs is `createDiv`/`createSpan`, added in v0.10.0. Don't lower `minAppVersion` below `1.0.0` without a real reason. If you adopt a newer API, raise `minAppVersion` to that API's release version and add a new entry to `versions.json` mapping the new plugin version to the new minimum (don't rewrite past entries — they reflect what each release historically claimed).
 
 ## TypeScript strictness
 

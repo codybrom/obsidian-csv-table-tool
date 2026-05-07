@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-07
+
+### Changed
+
+- Raised `minAppVersion` from `0.15.0` to `1.0.0`. The technical API minimum is `0.10.0` (when `createDiv` / `createSpan` were added), but Obsidian 1.0 has been out since October 2022 and is the practical floor we test against.
+
 ## [0.2.0] - 2026-05-07
 
 ### Added
@@ -41,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First-row-as-header toggle (per-file, with a global default in settings).
 - Hand-rolled CSV parser supporting quoted fields, embedded commas, embedded newlines, escaped `""`, and both `\n` / `\r\n` line endings.
 
-[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.1...HEAD
+[0.2.1]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/codybrom/obsidian-csv-table-tool/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/codybrom/obsidian-csv-table-tool/releases/tag/0.1.0
